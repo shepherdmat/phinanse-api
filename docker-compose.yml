@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+    php:
+        build:
+            context: ./docker/php
+        container_name: phinanse-php
+        restart: unless-stopped
+        working_dir: /var/www/html
+        volumes:
+            - ./:/var/www/html:cached
+            - ./docker/php/php-ini-overrides.ini:/etc/php/8.5/fpm/conf.d/99-overrides.ini
+            - ./docker/php/php-ini-overrides.ini:/etc/php/8.5/cli/conf.d/99-overrides.ini
+            - ./docker/php/php-ini-overrides.ini:/usr/local/etc/php/conf.d/99-overrides.ini
+            - ./docker/php/supervisord.conf:/etc/supervisor/supervisord.conf
+        environment:
+            APP_ENV: dev
+        depends_on:
+            - db
+        networks:
+            - phinanse-api
+
+    nginx:
+        image: nginx:1.25-alpine
+        container_name: phinanse-nginx
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "9001:9001"
+        volumes:
+            - ./:/var/www/html:ro
+            - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+            - ./docker/nginx/certs:/etc/nginx/certs
+        depends_on:
+            - php
+        networks:
+            - phinanse-api
+
+    db:
+        image: mysql:8.0
+        container_name: phinanse-mysql
+        restart: unless-stopped
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_DATABASE: phinanse_db
+            MYSQL_USER: phinanse_user
+            MYSQL_PASSWORD: phinanse_pass
+            MYSQL_ROOT_PASSWORD: root_pass
+        command: [ "--default-authentication-plugin=mysql_native_password","--character-set-server=utf8mb4","--collation-server=utf8mb4_unicode_ci" ]
+        volumes:
+            - db-data:/var/lib/mysql
+        networks:
+            - phinanse-api
+
+networks:
+    phinanse-api:
+        driver: bridge
+
+volumes:
+    db-data:
