@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Shepherdmat\Phinanse\Infrastructure;
 
 use Exception;
+use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -15,16 +16,13 @@ use Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface;
 
 final class Container
 {
-    private array $instances = [];
-    private array $bindings = [];
-
-    public static function init(string $environment): self
+    public static function init(array $env): self
     {
         $services = require __DIR__ . '/../../config/services.php';
         $routes = require __DIR__ . '/../../config/routes.php';
         $messages = require __DIR__ . '/../../config/messages.php';
 
-        $container = new self(environment: $environment);
+        $container = new self(env: $env);
         $container->set(self::class, $container);
 
         foreach ($services['services'] as $serviceClass) {
@@ -54,10 +52,16 @@ final class Container
     }
 
     public function __construct(
-        private readonly string $environment,
+        private readonly array $env,
+        private array $instances = [],
+        private array $bindings = [],
     )
     {
+    }
 
+    public function isDebugMode(): bool
+    {
+        return $this->env['debug'] ?? false;
     }
 
     public function bind(string $id, callable|string $concrete): void
