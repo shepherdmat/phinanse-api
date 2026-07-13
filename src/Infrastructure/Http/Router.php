@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Shepherdmat\Phinanse\Infrastructure\Http;
 
 use Shepherdmat\Phinanse\Infrastructure\Container;
+use Shepherdmat\Phinanse\UI\Http\Foundation\Response;
 
 final class Router
 {
@@ -12,7 +13,9 @@ final class Router
 
     public function __construct(
         private readonly Container $container,
-    ) {}
+    )
+    {
+    }
 
     public function dispatch(Request $request): Response
     {
@@ -20,7 +23,10 @@ final class Router
         $uri = $request->getUri();
 
         if (!isset($this->routes[$method])) {
-            return Response::json(['error' => 'Method Not Allowed'], 405);
+            return Response::jsonErrorResponse(
+                message: 'Method Not Allowed',
+                statusCode: Response::HTTP_NOT_ALLOWED,
+            );
         }
 
         foreach ($this->routes[$method] as $regex => $handler) {
@@ -42,11 +48,14 @@ final class Router
                     return $result;
                 }
 
-                return Response::json(['result' => $result]);
+                return Response::jsonResponse(['result' => $result]);
             }
         }
 
-        return Response::json(['error' => 'Not Found'], 404);
+        return Response::jsonErrorResponse(
+            message: 'Resource Not Found.',
+            statusCode: Response::HTTP_NOT_FOUND,
+        );
     }
 
     public function addRoute(string $method, string $path, callable|array $handler): void

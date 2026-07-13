@@ -25,6 +25,6 @@ final readonly class LoginController
         /** @var UserResponse $user */
         $user = $this->messageBus->query(new FindOneByIdQuery('123'));
 
-        return $this->response->json($user->toArray());
+        return $this->response->jsonResponse($user->toArray());
     }
 }
