@@ -11,12 +11,14 @@ final readonly class Kernel
 {
     public function __construct(
         private Container $container,
+        bool $debug,
     ) {}
 
-    public static function boot(Container $container): self
+    public static function boot(Container $container, bool $debug): self
     {
         return new self(
             container: $container,
+            debug: $debug,
         );
     }
 
