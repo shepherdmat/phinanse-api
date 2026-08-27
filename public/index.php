@@ -40,7 +40,9 @@ if ($envEnvironment && is_array($envEnvironment)) {
     $env = array_merge($env, $envEnvironment);
 }
 
-if ($env['environment'] === 'dev') {
+$debug = $env['environment'] === 'dev';
+
+if ($debug) {
     ini_set('display_errors', '1');
     ini_set('display_startup_errors', '1');
     error_reporting(E_ALL);
@@ -50,6 +52,6 @@ use Shepherdmat\Phinanse\Infrastructure\Container;
 use Shepherdmat\Phinanse\Infrastructure\Http\Kernel;
 use Shepherdmat\Phinanse\Infrastructure\Http\Request;
 
-Kernel::boot(container: Container::init(env: $env))
+Kernel::boot(container: Container::init(env: $env), debug: $debug)
     ->handle(Request::formGlobals())
     ->send();

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Shepherdmat\Phinanse\Domain\Entity;
 
+use DateTimeImmutable;
+use Shepherdmat\Phinanse\Shared\ValueObject\Uuid;
+
 final class User
 {
-    private string $id {
+    private Uuid $id {
         get {
             return $this->id;
         }
-        set {
-            $this->id = $value;
-        }
     }
-    
+
     private string $email {
         get {
             return $this->email;
@@ -24,12 +24,20 @@ final class User
         }
     }
 
+    private DateTimeImmutable $createdAt {
+        get {
+            return $this->createdAt;
+        }
+    }
+
     public function __construct(
-        string $id,
-        string $email,
+        Uuid              $id,
+        string            $email,
+        DateTimeImmutable $createdAt,
     )
     {
         $this->id = $id;
         $this->email = $email;
+        $this->createdAt = $createdAt;
     }
 }
