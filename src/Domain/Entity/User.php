@@ -9,13 +9,9 @@ use Shepherdmat\Phinanse\Shared\ValueObject\Uuid;
 
 final class User
 {
-    private Uuid $id {
-        get {
-            return $this->id;
-        }
-    }
+    private(set) Uuid $id;
 
-    private string $email {
+    public string $email {
         get {
             return $this->email;
         }
@@ -24,20 +20,24 @@ final class User
         }
     }
 
-    private DateTimeImmutable $createdAt {
-        get {
-            return $this->createdAt;
-        }
-    }
+    private(set) string $passwordHash;
+
+    private(set) DateTimeImmutable $createdAt;
 
     public function __construct(
         Uuid              $id,
         string            $email,
+        string            $passwordHash,
         DateTimeImmutable $createdAt,
-    )
-    {
+    ) {
         $this->id = $id;
         $this->email = $email;
+        $this->passwordHash = $passwordHash;
         $this->createdAt = $createdAt;
+    }
+
+    public function changePassword(string $newPasswordHash): void
+    {
+        $this->passwordHash = $newPasswordHash;
     }
 }

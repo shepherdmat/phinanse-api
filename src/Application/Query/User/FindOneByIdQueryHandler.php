@@ -18,11 +18,11 @@ final readonly class FindOneByIdQueryHandler
 
     public function __invoke(FindOneByIdQuery $query): UserResponse
     {
-        $userEntity = $this->userRepository->findOneById(id: $query->id);
-
-        return new UserResponse(
-            id: $userEntity->),
-            email: 'test@test.com',
-        );
+//        $userEntity = $this->userRepository->findOneById(id: $query->id);
+//
+//        return new UserResponse(
+//            id: $userEntity->),
+//            email: 'test@test.com',
+//        );
     }
 }

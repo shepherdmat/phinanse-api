@@ -50,6 +50,15 @@ class MySqlConnection
 
         return $result === false ? null : $result;
     }
+
+    public function execute(string $sql, array $params = []): int
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
+
 //
 //    public function execute(string $sql, array $params = []): int
 //    {

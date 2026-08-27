@@ -52,6 +52,19 @@ use Shepherdmat\Phinanse\Infrastructure\Container;
 use Shepherdmat\Phinanse\Infrastructure\Http\Kernel;
 use Shepherdmat\Phinanse\Infrastructure\Http\Request;
 
+$container = Container::init(env: $env);
+
+dd($container);
+
+/** @var \Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface $messageBus */
+$messageBus = $container->get(\Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface::class);
+
+dd($messageBus->command(new \Shepherdmat\Phinanse\Application\Command\User\CreateUserCommand('mc.owczarek@gmail.com', 'admin')));
+
+//$x = \Shepherdmat\Phinanse\Shared\ValueObject\Uuid::v7();
+//
+//var_dump($x->toBinary());die;
+
 Kernel::boot(container: Container::init(env: $env), debug: $debug)
     ->handle(Request::formGlobals())
     ->send();
