@@ -14,58 +14,72 @@ use Shepherdmat\Phinanse\Infrastructure\Persistence\Repository\UserRepository;
 use Shepherdmat\Phinanse\Infrastructure\Security\NativeArgon2idPasswordHasher;
 use Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface;
 
-final readonly class Container implements ContainerInterface
+final class Container implements ContainerInterface
 {
+    private array $instances = [];
+
     public function __construct(
-        private array $services = [],
+        private readonly array $factories = [],
     ) {
     }
 
     public static function init(array $env): self
     {
-        $repositories = self::getRepositories($env);
-        $passwordHasher = new NativeArgon2idPasswordHasher();
+        // 1. Zamiast gotowych obiektów, definiujemy FABRYKI (closures)
+        $factories = [
+            UserRepositoryInterface::class => static function (self $c) use ($env) {
+                return self::createUserRepository($env);
+            },
+            PasswordHasherInterface::class => static fn() => new NativeArgon2idPasswordHasher(),
+        ];
 
-        $baseServices = array_merge($repositories, [
-            PasswordHasherInterface::class => $passwordHasher,
-        ]);
-
-        $tempContainer = new self($baseServices);
+        // 2. Pobieramy konfigurację (handlery już masz zapisane jako fabryki, co jest świetne!)
         $messages = require __DIR__ . '/../../config/messages.php';
 
-        $handlers = array_map(function ($factoryClosure) use ($tempContainer) {
-            return $factoryClosure($tempContainer);
-        }, $messages['handlers'] ?? []);
+        $factories = array_merge($factories, $messages['handlers'] ?? []);
 
-        $servicesWithHandlers = array_merge($baseServices, $handlers);
-        $containerForBus = new self($servicesWithHandlers);
+        // 3. Fabryka dla MessageBusa
+        $factories[MessageBusInterface::class] = static function (self $c) use ($messages) {
+            // Bus dostaje czysty kontener i config routingu
+            return new MessageBus($c, $messages['routing']);
+        };
 
-        $messageBus = new MessageBus($containerForBus, $messages['routing']);
+        // Opcjonalnie: Jeśli coś jawnie potrzebuje ContainerInterface, po prostu zwracamy $c.
+        $factories[ContainerInterface::class] = static fn(self $c) => $c;
 
-        $finalServices = array_merge($servicesWithHandlers, [
-            MessageBusInterface::class => $messageBus,
-            ContainerInterface::class => $containerForBus,
-        ]);
-
-        return new self($finalServices);
+        // Tworzymy kontener RAZ.
+        return new self($factories);
     }
 
     public function has(string $id): bool
     {
-        return isset($this->services[$id]);
+        return isset($this->factories[$id]) || isset($this->instances[$id]);
     }
 
     public function get(string $id): object
     {
-        if (!$this->has($id)) {
+        // Jeśli serwis został już wcześniej stowrzony, zwróć go (Singleton)
+        if (isset($this->instances[$id])) {
+            return $this->instances[$id];
+        }
+
+        if (!isset($this->factories[$id])) {
             throw new InvalidArgumentException(sprintf('Service "%s" not found in container.', $id));
         }
 
-        return $this->services[$id];
+        // Wywołaj fabrykę, przekazując instancję kontenera ($this)
+        $factory = $this->factories[$id];
+        $instance = $factory($this);
+
+        // Zapisz na przyszłość
+        $this->instances[$id] = $instance;
+
+        return $instance;
     }
 
-    private static function getRepositories(array $env): array
+    private static function createUserRepository(array $env): UserRepositoryInterface
     {
+        // Ta logika wykona się DOPIERO gdy ktoś wywoła $container->get(UserRepositoryInterface::class)
         $dbHost = $env['database_host'] ?? false;
         $dbPort = $env['database_port'] ?? false;
         $dbCharset = $env['database_charset'] ?? false;
@@ -86,8 +100,6 @@ final readonly class Container implements ContainerInterface
             password: $dbPassword,
         );
 
-        return [
-            UserRepositoryInterface::class => new UserRepository($connection),
-        ];
+        return new UserRepository($connection);
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Shepherdmat\Phinanse\Application\Command\User\CreateUserCommand;
 use Shepherdmat\Phinanse\Application\Command\User\CreateUserCommandHandler;
+use Shepherdmat\Phinanse\Application\Query\User\FindOneByEmailQuery;
+use Shepherdmat\Phinanse\Application\Query\User\FindOneByEmailQueryHandler;
 use Shepherdmat\Phinanse\Application\Query\User\FindOneByIdQuery;
 use Shepherdmat\Phinanse\Application\Query\User\FindOneByIdQueryHandler;
 use Shepherdmat\Phinanse\Application\Security\PasswordHasherInterface;
@@ -20,6 +22,10 @@ return [
             'handler' => FindOneByIdQueryHandler::class,
             'async' => false,
         ],
+        FindOneByEmailQuery::class => [
+            'handler' => FindOneByEmailQueryHandler::class,
+            'async' => false,
+        ],
     ],
 
     'handlers' => [
@@ -29,11 +35,15 @@ return [
                 passwordHasher: $c->get(PasswordHasherInterface::class)
             );
         },
-
         FindOneByIdQueryHandler::class => static function (Container $c): FindOneByIdQueryHandler {
             return new FindOneByIdQueryHandler(
                 userRepository: $c->get(UserRepositoryInterface::class)
             );
-        }
+        },
+        FindOneByEmailQueryHandler::class => static function (Container $c): FindOneByEmailQueryHandler {
+            return new FindOneByEmailQueryHandler(
+                userRepository: $c->get(UserRepositoryInterface::class)
+            );
+        },
     ],
 ];

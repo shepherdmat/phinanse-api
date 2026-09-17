@@ -49,22 +49,29 @@ if ($debug) {
 }
 
 use Shepherdmat\Phinanse\Infrastructure\Container;
-use Shepherdmat\Phinanse\Infrastructure\Http\Kernel;
 use Shepherdmat\Phinanse\Infrastructure\Http\Request;
+use Shepherdmat\Phinanse\UI\Http\HttpKernel;
 
-$container = Container::init(env: $env);
-
-dd($container);
-
-/** @var \Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface $messageBus */
-$messageBus = $container->get(\Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface::class);
-
-dd($messageBus->command(new \Shepherdmat\Phinanse\Application\Command\User\CreateUserCommand('mc.owczarek@gmail.com', 'admin')));
-
-//$x = \Shepherdmat\Phinanse\Shared\ValueObject\Uuid::v7();
+//$container = Container::init(env: $env);
 //
-//var_dump($x->toBinary());die;
+////dd($container);
+//
+///** @var \Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface $messageBus */
+//$messageBus = $container->get(\Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface::class);
+//
+//dd($messageBus->query(new \Shepherdmat\Phinanse\Application\Query\User\FindOneByEmailQuery(\Shepherdmat\Phinanse\Shared\ValueObject\Email::fromString('mc.owczarek@gmail.com'))));
+//
+////$x = \Shepherdmat\Phinanse\Shared\ValueObject\Uuid::v7();
+////
+////var_dump($x->toBinary());die;
+//
+//HttpKernel::boot(container: Container::init(env: $env), debug: $debug)
+//    ->handle(Request::formGlobals())
+//    ->send();
 
-Kernel::boot(container: Container::init(env: $env), debug: $debug)
-    ->handle(Request::formGlobals())
-    ->send();
+$container = Container::init($env);
+$request = Request::createFromGlobals();
+$routes = require __DIR__ . '/../config/routes.php';
+
+$kernel = new HttpKernel($container, $routes);
+$kernel->handle($request);

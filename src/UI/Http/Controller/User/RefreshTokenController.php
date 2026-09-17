@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Shepherdmat\Phinanse\UI\Http\Controller\v1\User;
+namespace Shepherdmat\Phinanse\UI\Http\Controller\User;
 
 final readonly class RefreshTokenController
 {

@@ -7,18 +7,16 @@ namespace Shepherdmat\Phinanse\Infrastructure\Persistence\Mapper;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Shepherdmat\Phinanse\Domain\Entity\User;
+use Shepherdmat\Phinanse\Shared\ValueObject\Email;
 use Shepherdmat\Phinanse\Shared\ValueObject\Uuid;
 
 class UserMapper
 {
-    /**
-     * @throws DateMalformedStringException
-     */
     public static function fromDatabase(array $data): User
     {
         return new User(
             id: Uuid::fromBinary($data['id']),
-            email: $data['email'],
+            email: Email::fromString($data['email']),
             passwordHash: $data['password_hash'],
             createdAt: new DateTimeImmutable($data['created_at'])
         );
@@ -28,7 +26,7 @@ class UserMapper
     {
         return [
             'id' => $user->id->toBinary(),
-            'email' => $user->email,
+            'email' => (string) $user->email,
             'password_hash' => $user->passwordHash,
             'created_at' => $user->createdAt->format('Y-m-d H:i:s'),
         ];

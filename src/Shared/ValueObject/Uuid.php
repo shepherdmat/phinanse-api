@@ -72,4 +72,9 @@ final readonly class Uuid
                 subject: $uuid
             ) === 1;
     }
+
+    public function __toString(): string
+    {
+        return $this->value;
+    }
 }
