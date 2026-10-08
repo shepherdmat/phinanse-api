@@ -6,22 +6,23 @@ namespace Shepherdmat\Phinanse\Infrastructure\Persistence;
 
 use PDO;
 use SensitiveParameter;
+use Shepherdmat\Phinanse\Shared\Persistence\ConnectionInterface;
 
-class MySqlConnection
+class MySqlConnection implements ConnectionInterface
 {
     private PDO $pdo;
 
     public function __construct(
-        string                       $host,
-        int                          $port,
-        string                       $charset,
-        string                       $database,
-        string                       $username,
-        #[SensitiveParameter] string $password,
+        string                       $databaseHost,
+        int                          $databasePort,
+        string                       $databaseCharset,
+        string                       $databaseName,
+        string                       $databaseUser,
+        #[SensitiveParameter] string $databasePassword,
 
     )
     {
-        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $host, $port, $database, $charset);
+        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $databaseHost, $databasePort, $databaseName, $databaseCharset);
 
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -30,7 +31,7 @@ class MySqlConnection
             PDO::ATTR_PERSISTENT => false,
         ];
 
-        $this->pdo = new PDO($dsn, $username, $password, $options);
+        $this->pdo = new PDO($dsn, $databaseUser, $databasePassword, $options);
     }
 
 //    public function fetchAll(string $sql, array $params = []): array

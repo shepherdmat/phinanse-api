@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Shepherdmat\Phinanse\Infrastructure\Http;
 
-use Shepherdmat\Phinanse\Infrastructure\Container;
+use Shepherdmat\Phinanse\Infrastructure\DependencyInjection\Container;
 use Shepherdmat\Phinanse\UI\Http\Foundation\Response;
 
 final class Router

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Shepherdmat\Phinanse\Application\Security;
+namespace Shepherdmat\Phinanse\Shared\Security;
 
 use SensitiveParameter;
 
@@ -10,5 +10,5 @@ interface PasswordHasherInterface
 {
     public function hash(#[SensitiveParameter] string $plainPassword): string;
 
-    public function verify(#[SensitiveParameter] string $plainPassword, string $passwordHash): bool;
+    public function verify(#[SensitiveParameter] string $plainPassword, string $hash): bool;
 }

@@ -8,13 +8,13 @@ use DateMalformedStringException;
 use Shepherdmat\Phinanse\Domain\Entity\User;
 use Shepherdmat\Phinanse\Domain\Repository\UserRepositoryInterface;
 use Shepherdmat\Phinanse\Infrastructure\Persistence\Mapper\UserMapper;
-use Shepherdmat\Phinanse\Infrastructure\Persistence\MySqlConnection;
+use Shepherdmat\Phinanse\Shared\Persistence\ConnectionInterface;
 use Shepherdmat\Phinanse\Shared\ValueObject\Email;
 use Shepherdmat\Phinanse\Shared\ValueObject\Uuid;
 
 final readonly class UserRepository implements UserRepositoryInterface
 {
-    public function __construct(private MySqlConnection $connection)
+    public function __construct(private ConnectionInterface $connection, private int $databasePort, private string $environment, private bool $debug,)
     {
     }
 

@@ -8,10 +8,14 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionMethod;
+use ReflectionNamedType;
 use ReflectionParameter;
 use RuntimeException;
+use Shepherdmat\Phinanse\Infrastructure\FileSystem\ArrayFileLoader;
 use Shepherdmat\Phinanse\Shared\Exception\NotFoundExceptionInterface;
 use Shepherdmat\Phinanse\UI\Http\Exception\UiException;
+use Shepherdmat\Phinanse\UI\Http\Exception\UiValidationException;
 use Shepherdmat\Phinanse\UI\Http\Foundation\RequestInterface;
 use Throwable;
 
@@ -20,12 +24,30 @@ final readonly class HttpKernel
     public function __construct(
         private ContainerInterface $container,
         private array              $routes,
+        private bool               $debug,
     )
     {
     }
 
+    public static function boot(
+        ContainerInterface $container,
+        bool               $debug,
+    ): self
+    {
+        $routesConfigFile = sprintf('%s/../../../config/routes.php', __DIR__);
+        $routes = ArrayFileLoader::load(path: $routesConfigFile);
+
+        return new self(
+            container: $container,
+            routes: $routes,
+            debug: $debug,
+        );
+    }
+
     public function handle(RequestInterface $request): void
     {
+        dd($this->container);
+
         try {
             $method = $request->getMethod();
             $uri = $request->getUri();
@@ -38,22 +60,74 @@ final readonly class HttpKernel
 
             $controllerClass = $routeConfig['class'] ?? $routeConfig['controller'];
             $controller = $this->resolveController($controllerClass);
-            $response = $controller($request, ...$routeParams);
+            $args = $this->resolveMethodArguments($controller, $request, $routeParams);
+            $response = $controller(...$args);
 
             $this->sendJson(200, ['data' => $response]);
 
         } catch (UiException $e) {
             $this->sendJson($e->statusCode, [
                 'message' => $e->getMessage(),
-                'statusCode' => $e->statusCode,
                 'translationKey' => $e->translationKey,
                 'translationParams' => $e->translationParams,
+            ]);
+        } catch (UiValidationException $e) {
+            $this->sendJson($e->getCode(), [
+                'message' => $e->getMessage(),
+                'errors' => $e->errors,
             ]);
         } catch (NotFoundExceptionInterface $e) {
             $this->sendJson(404, ['error' => ['message' => $e->getMessage()]]);
         } catch (Throwable $e) {
-            $this->sendJson(500, ['error' => ['message' => 'Internal Server Error: ' . $e->getMessage()]]);
+            dd($e);
+            $isDebug = $this->services['debug'] ?? false;
+            $message = $isDebug ? 'Internal Server Error: ' . $e->getMessage() : 'Internal Server Error';
+
+            $this->sendJson(500, ['error' => ['message' => $message]]);
         }
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws UiValidationException
+     * @throws RuntimeException
+     */
+    private function resolveMethodArguments(object $controller, RequestInterface $request, array $routeParams): array
+    {
+        $reflection = new ReflectionMethod($controller, '__invoke');
+        $args = [];
+        $resolvers = $this->services['resolvers'] ?? [];
+
+        foreach ($reflection->getParameters() as $param) {
+            $type = $param->getType();
+            $paramName = $param->getName();
+
+            if (array_key_exists($paramName, $routeParams)) {
+                $args[] = $routeParams[$paramName];
+                continue;
+            }
+
+            if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) {
+                $className = $type->getName();
+
+                if (is_a($className, RequestInterface::class, true)) {
+                    $args[] = $request;
+
+                    continue;
+                }
+
+                if (isset($resolvers[$className])) {
+                    $resolverClass = $resolvers[$className];
+                    $args[] = $resolverClass::resolve($request);
+
+                    continue;
+                }
+            }
+
+            throw new RuntimeException(sprintf('Cannot resolve argument "$%s" of type "%s" in %s::__invoke()', $paramName, $type?->getName() ?? 'unknown', $controller::class));
+        }
+
+        return $args;
     }
 
     private function matchRoute(string $method, string $uri, &$params = []): ?array

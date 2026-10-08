@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Shepherdmat\Phinanse\Shared\ValueObject;
 
-use InvalidArgumentException;
+
+use Shepherdmat\Phinanse\Shared\Exception\InvalidArgumentException;
 
 final readonly class Email
 {

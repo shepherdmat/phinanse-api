@@ -19,59 +19,25 @@ if (!file_exists(__DIR__ . '/../vendor/autoload.php')) {
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-
-$projectDirectory = __DIR__ . '/../';
-$env = @include sprintf('%s/.env.local.php', $projectDirectory);
-
-if (!$env || !is_array($env)) {
-    sendNativeJsonErrorResponse('Environment variables file not found or is not valid.');
-}
-
-if (!isset($env['environment'])) {
-    sendNativeJsonErrorResponse('Crucial variable "environment" is not defined.');
-}
-
-$env['projectDirectory'] = $projectDirectory;
-
-$envEnvironmentPath = sprintf('%s/.env.%s.php', $projectDirectory, $env['environment']);
-$envEnvironment = @include $envEnvironmentPath;
-
-if ($envEnvironment && is_array($envEnvironment)) {
-    $env = array_merge($env, $envEnvironment);
-}
-
-$debug = $env['environment'] === 'dev';
-
-if ($debug) {
-    ini_set('display_errors', '1');
-    ini_set('display_startup_errors', '1');
-    error_reporting(E_ALL);
-}
-
-use Shepherdmat\Phinanse\Infrastructure\Container;
+use Shepherdmat\Phinanse\Infrastructure\DependencyInjection\Container;
+use Shepherdmat\Phinanse\Infrastructure\FileSystem\EnvironmentVariablesLoader;
 use Shepherdmat\Phinanse\Infrastructure\Http\Request;
 use Shepherdmat\Phinanse\UI\Http\HttpKernel;
 
-//$container = Container::init(env: $env);
-//
-////dd($container);
-//
-///** @var \Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface $messageBus */
-//$messageBus = $container->get(\Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface::class);
-//
-//dd($messageBus->query(new \Shepherdmat\Phinanse\Application\Query\User\FindOneByEmailQuery(\Shepherdmat\Phinanse\Shared\ValueObject\Email::fromString('mc.owczarek@gmail.com'))));
-//
-////$x = \Shepherdmat\Phinanse\Shared\ValueObject\Uuid::v7();
-////
-////var_dump($x->toBinary());die;
-//
-//HttpKernel::boot(container: Container::init(env: $env), debug: $debug)
-//    ->handle(Request::formGlobals())
-//    ->send();
+$env = EnvironmentVariablesLoader::load(projectDirectory: dirname(__DIR__));
+$debug = $env['debug'] ?? false;
 
-$container = Container::init($env);
-$request = Request::createFromGlobals();
-$routes = require __DIR__ . '/../config/routes.php';
+if ($debug) {
+    ini_set(option: 'display_errors', value: '1');
+    ini_set(option: 'display_startup_errors', value: '1');
+    error_reporting(error_level: E_ALL);
+}
 
-$kernel = new HttpKernel($container, $routes);
-$kernel->handle($request);
+$container = Container::init(environmentVariables: $env);
+
+$kernel = HttpKernel::boot(
+    container: $container,
+    debug: $debug,
+);
+
+$kernel->handle(request: Request::createFromGlobals());

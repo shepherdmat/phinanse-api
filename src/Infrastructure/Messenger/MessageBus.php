@@ -4,21 +4,26 @@ declare(strict_types=1);
 
 namespace Shepherdmat\Phinanse\Infrastructure\Messenger;
 
+use Exception;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use Shepherdmat\Phinanse\Infrastructure\Container;
+use Shepherdmat\Phinanse\Infrastructure\DependencyInjection\ClassLoader;
+use Shepherdmat\Phinanse\Infrastructure\DependencyInjection\Container;
+use Shepherdmat\Phinanse\Infrastructure\FileSystem\ArrayFileLoader;
 use Shepherdmat\Phinanse\Shared\Messenger\CommandMessageInterface;
 use Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface;
 use Shepherdmat\Phinanse\Shared\Messenger\MessageResponseInterface;
 use Shepherdmat\Phinanse\Shared\Messenger\QueryMessageInterface;
-use Exception;
 
 final readonly class MessageBus implements MessageBusInterface
 {
+    private array $routing;
+
     public function __construct(
         private Container $container,
-        private array $routing,
-    ) {
+    )
+    {
+        $this->routing = self::getConfig($this->container);
     }
 
 
@@ -30,9 +35,8 @@ final readonly class MessageBus implements MessageBusInterface
     public function query(QueryMessageInterface $query): MessageResponseInterface
     {
         $route = $this->getRouteConfig($query::class);
-        $handler = $this->container->get($route['handler']);
 
-        return $handler($query);
+        return $this->loadHandler($route['handler'])($query);
     }
 
 
@@ -50,8 +54,14 @@ final readonly class MessageBus implements MessageBusInterface
             // === PRZYSZŁA ASYNCHRONICZNOŚĆ ===
         }
 
-        $handler = $this->container->get($route['handler']);
-        return $handler($command);
+        return $this->loadHandler($route['handler'])($command);
+    }
+
+    private static function getConfig(Container $container): array
+    {
+        return ArrayFileLoader::load(
+            sprintf('%s/config/messages.php', $container->getParameter(name: 'projectDirectory'))
+        );
     }
 
     /**
@@ -77,5 +87,10 @@ final readonly class MessageBus implements MessageBusInterface
         }
 
         return $config;
+    }
+
+    private function loadHandler(string $handlerClass): callable
+    {
+        return ClassLoader::load($handlerClass, $this->container);
     }
 }

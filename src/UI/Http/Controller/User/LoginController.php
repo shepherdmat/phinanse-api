@@ -4,49 +4,41 @@ declare(strict_types=1);
 
 namespace Shepherdmat\Phinanse\UI\Http\Controller\User;
 
-use InvalidArgumentException;
 use Shepherdmat\Phinanse\Application\Exception\NotFoundException;
 use Shepherdmat\Phinanse\Application\Query\User\FindOneByEmailQuery;
-use Shepherdmat\Phinanse\Application\Response\User\UserResponse;
 use Shepherdmat\Phinanse\Shared\Messenger\MessageBusInterface;
-use Shepherdmat\Phinanse\Shared\Messenger\MessageResponseInterface;
-use Shepherdmat\Phinanse\Shared\ValueObject\Email;
+use Shepherdmat\Phinanse\Shared\Security\PasswordHasherInterface;
 use Shepherdmat\Phinanse\UI\Http\Exception\UiException;
-use Shepherdmat\Phinanse\UI\Http\Foundation\RequestInterface;
-use Shepherdmat\Phinanse\UI\Http\Request\Resolver\LoginRequestResolver;
+use Shepherdmat\Phinanse\UI\Http\Request\Dto\LoginRequestDto;
 
 final readonly class LoginController
 {
     public function __construct(
         private MessageBusInterface $messageBus,
-    )
+        private PasswordHasherInterface $passwordHasher, // Wstrzykujemy hasher!
+    ) {}
+
+    public function __invoke(LoginRequestDto $requestModel) // Zwracasz np. JWT token
     {
-
-    }
-
-    /**
-     * @throws UiException
-     */
-    public function __invoke(RequestInterface $request): MessageResponseInterface
-    {
-        $loginRequestModel = LoginRequestResolver::resolve(request: $request);
-
-        dd($loginRequestModel);
-
         try {
-            /** @var UserResponse $user */
-            $user = $this->messageBus->query(new FindOneByEmailQuery(email: $loginRequestModel->email));
+            // 1. Znajdź usera (zwróci DTO usera z zahashowanym hasłem wyciągniętym z bazy)
+            $user = $this->messageBus->query(
+                new FindOneByEmailQuery(email: $requestModel->email)
+            );
 
-            //validacja hasła
+            // 2. Zweryfikuj hasło
+            if (!$this->passwordHasher->verify($requestModel->password, $user->passwordHash)) {
+                // Rzucamy nasz wyjątek domyślny, żeby nie ułatwiać enumeracji kont
+                throw new NotFoundException();
+            }
+
+            // 3. Sukces - generuj token / sesję
+            // return $token;
 
         } catch (NotFoundException) {
-            // invalid credentials
-            throw UiException::userNotFoundByEmail($emailString);
+            throw new UiException('error.credentials.invalid', [], 401, 'Invalid credentials');
         }
 
-
-        dd($user);
-
-        return $user;
+        dd('ok');
     }
 }
